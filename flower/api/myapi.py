@@ -1,14 +1,37 @@
 from __future__ import absolute_import
 
-
+import json
 import logging
 from functools import total_ordering
 from tornado import web
 from tornado import gen
 from ..utils import response, tasks
+from ..utils.broker import Redis
 from .control import ControlHandler
 
 logger = logging.getLogger(__name__)
+default_device_info = {
+    "gpu": [
+        {
+            "name": "N/A",
+            "total": 0,
+            "used": 0,
+            "free": 0,
+            "usage": 0
+        }
+    ],
+    "cpu": {
+        "cores": 0,
+        "logical_counts": 0,
+        "usage": 0
+    },
+    "mem": {
+        "total": 0,
+        "free": 0,
+        "used": 0,
+        "process_used": 0
+    },
+}
 
 class DashBoard(ControlHandler):
     @web.authenticated
@@ -18,6 +41,7 @@ class DashBoard(ControlHandler):
         events = app.events.state
         broker = app.capp.connection().as_uri()
         workers = {}
+
         for name, values in events.counter.items():
             if name not in events.workers:
                 continue
@@ -26,6 +50,12 @@ class DashBoard(ControlHandler):
             info.update(self._as_dict(worker))
             info.update(status=worker.alive)
             workers[name] = info
+            redis_client = Redis(broker).redis
+            device_info = redis_client.get(name)
+            if device_info is not None:
+                info.update(device_info=json.loads(device_info.decode()))
+            else:
+                info.update(device_info=default_device_info)
         self.write(response.ok(list(workers.values())))
 
     @classmethod
@@ -39,7 +69,7 @@ class DashBoard(ControlHandler):
     def _info(cls, worker):
         _fields = ('hostname', 'pid', 'freq', 'heartbeats', 'clock',
                    'active', 'processed', 'loadavg', 'sw_ident',
-                   'sw_ver', 'sw_sys')
+                   'sw_ver', 'sw_sys', 'device_info')
 
         def _keys():
             for key in _fields:

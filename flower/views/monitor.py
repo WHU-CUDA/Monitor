@@ -25,7 +25,7 @@ class SucceededTaskMonitor(BaseHandler):
 
         data = defaultdict(int)
         for _, task in state.itertasks():
-            if (timestamp < task.timestamp and task.state == states.SUCCESS):
+            if timestamp < task.timestamp and task.state == states.SUCCESS:
                 data[task.worker.hostname] += 1
         for worker in state.workers:
             if worker not in data:

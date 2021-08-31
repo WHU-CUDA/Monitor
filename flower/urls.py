@@ -9,6 +9,7 @@ from .api import control
 from .api import tasks
 from .api import workers
 from .api import myapi
+from .api import test
 from .views import auth
 from .views import monitor
 from .views.broker import BrokerView
@@ -17,7 +18,7 @@ from .views.tasks import TaskView, TasksView, TasksDataTable
 from .views.error import NotFoundErrorHandler
 from .views.dashboard import DashboardView, DashboardUpdateHandler
 from .utils import gen_cookie_secret
-
+from .api import broker
 
 settings = dict(
     template_path=os.path.join(os.path.dirname(__file__), "templates"),
@@ -29,6 +30,7 @@ settings = dict(
 
 
 handlers = [
+    (r"/api/test", test.TestView),
     # App
     url(r"/", DashboardView, name='main'),
     url(r"/dashboard", DashboardView, name='dashboard'),
@@ -62,6 +64,8 @@ handlers = [
     (r"/api/task/timeout/(.+)", control.TaskTimout),
     (r"/api/task/rate-limit/(.+)", control.TaskRateLimit),
     (r"/api/task/revoke/(.+)", control.TaskRevoke),
+    # Broker APU
+    (r"/api/broker", broker.BrokerView),
     # Events WebSocket API
     (r"/api/task/events/task-sent/(.*)", events.TaskSent),
     (r"/api/task/events/task-received/(.*)", events.TaskReceived),

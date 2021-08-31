@@ -16,7 +16,7 @@ from celery.result import AsyncResult
 from celery.contrib.abortable import AbortableAsyncResult
 from celery.backends.base import DisabledBackend
 
-from ..utils import tasks
+from ..utils import tasks, response
 from ..views import BaseHandler
 from ..utils.broker import Broker
 from ..api.control import ControlHandler
@@ -136,20 +136,20 @@ Execute a task by name and wait results
             raise HTTPError(400, 'Invalid option')
 
         result = task.apply_async(args=args, kwargs=kwargs, **options)
-        response = {'task-id': result.task_id}
+        resp = {'task-id': result.task_id}
 
-        response = yield IOLoop.current().run_in_executor(
-            None, self.wait_results, result, response)
-        self.write(response)
+        resp = yield IOLoop.current().run_in_executor(
+            None, self.wait_results, result, resp)
+        self.write(resp)
 
-    def wait_results(self, result, response):
+    def wait_results(self, result, resp):
         # Wait until task finished and do not raise anything
         result.get(propagate=False)
         # Write results and finish async function
-        self.update_response_result(response, result)
+        self.update_response_result(resp, result)
         if self.backend_configured(result):
-            response.update(state=result.state)
-        return response
+            resp.update(state=result.state)
+        return resp
 
 
 class TaskAsyncApply(BaseTaskHandler):

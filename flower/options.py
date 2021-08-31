@@ -35,7 +35,7 @@ define("max_tasks", type=int, default=10000,
        help="maximum number of tasks to keep in memory")
 define("db", type=str, default='flower',
        help="flower database file")
-define("persistent", type=bool, default=False,
+define("persistent", type=bool, default=True,
        help="enable persistent mode")
 define("broker_api", type=str, default=None,
        help="inspect broker e.g. http://guest:guest@localhost:15672/api/")

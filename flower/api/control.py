@@ -6,9 +6,8 @@ import collections
 
 from tornado import web
 from tornado import gen
-
+from ..utils import response
 from ..views import BaseHandler
-
 
 logger = logging.getLogger(__name__)
 
@@ -102,11 +101,12 @@ Shut down a worker
 :statuscode 404: unknown worker
         """
         if not self.is_worker(workername):
-            raise web.HTTPError(404, "Unknown worker '%s'" % workername)
+            self.write(response.result(404, message="Unknown worker '%s'" % workername))
+            return
 
         logger.info("Shutting down '%s' worker", workername)
         self.capp.control.broadcast('shutdown', destination=[workername])
-        self.write(dict(message="Shutting down!"))
+        self.write(response.result(200, message="Shutting down!"))
 
 
 class WorkerPoolRestart(ControlHandler):
@@ -142,21 +142,20 @@ Restart worker's pool
 :statuscode 404: unknown worker
         """
         if not self.is_worker(workername):
-            raise web.HTTPError(404, "Unknown worker '%s'" % workername)
+            self.write(response.result(404, message="Unknown worker '%s'" % workername))
+            return
 
         logger.info("Restarting '%s' worker's pool", workername)
-        response = self.capp.control.broadcast(
+        resp = self.capp.control.broadcast(
             'pool_restart', arguments={'reload': False},
             destination=[workername], reply=True)
-        if response and 'ok' in response[0][workername]:
-            self.write(dict(
-                message="Restarting '%s' worker's pool" % workername))
+        if resp and 'ok' in resp[0][workername]:
+            self.write(response.result(200, message="Restarting '%s' worker's pool" % workername))
         else:
-            logger.error(response)
-            self.set_status(403)
-            self.write("Failed to restart the '%s' pool: %s" % (
-                workername, self.error_reason(workername, response)
-            ))
+            logger.error(resp)
+            self.write(response.method_error(message="Failed to restart the '%s' pool: %s" % (
+                workername, self.error_reason(workername, resp)
+            )))
 
 
 class WorkerPoolGrow(ControlHandler):
@@ -255,7 +254,7 @@ Shrink worker's pool
             n=n, reply=True, destination=[workername])
         if response and 'ok' in response[0][workername]:
             self.write(dict(message="Shrinking '%s' worker's pool by %s" % (
-                            workername, n)))
+                workername, n)))
         else:
             logger.error(response)
             self.set_status(403)
