@@ -1,6 +1,6 @@
 from __future__ import absolute_import
 
-import json
+
 import logging
 from functools import total_ordering
 from tornado import web
@@ -10,28 +10,6 @@ from ..utils.broker import Redis
 from .control import ControlHandler
 
 logger = logging.getLogger(__name__)
-default_device_info = {
-    "gpu": [
-        {
-            "name": "N/A",
-            "total": 0,
-            "used": 0,
-            "free": 0,
-            "usage": 0
-        }
-    ],
-    "cpu": {
-        "cores": 0,
-        "logical_counts": 0,
-        "usage": 0
-    },
-    "mem": {
-        "total": 0,
-        "free": 0,
-        "used": 0,
-        "process_used": 0
-    },
-}
 
 class DashBoard(ControlHandler):
     @web.authenticated
@@ -41,7 +19,6 @@ class DashBoard(ControlHandler):
         events = app.events.state
         broker = app.capp.connection().as_uri()
         workers = {}
-
         for name, values in events.counter.items():
             if name not in events.workers:
                 continue
