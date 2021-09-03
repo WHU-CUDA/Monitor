@@ -30,7 +30,10 @@ settings = dict(
 
 
 handlers = [
-    (r"/api/test", test.TestView),
+    # MyApi
+    (r"/api/dashboard", myapi.DashBoard),
+    (r"/api/tasks/tabledata", myapi.TaskTableData),
+    (r"/api/worker/(.+)", myapi.WorkerAPIView),
     # App
     url(r"/", DashboardView, name='main'),
     url(r"/dashboard", DashboardView, name='dashboard'),
@@ -49,10 +52,8 @@ handlers = [
     (r"/api/worker/queue/add-consumer/(.+)", control.WorkerQueueAddConsumer),
     (r"/api/worker/queue/cancel-consumer/(.+)",
         control.WorkerQueueCancelConsumer),
-    (r"/api/dashboard", myapi.DashBoard),
     # Task API
     (r"/api/tasks", tasks.ListTasks),
-    (r"/api/tasks/tabledata", myapi.TaskTableData),
     (r"/api/task/types", tasks.ListTaskTypes),
     (r"/api/queues/length", tasks.GetQueueLengths),
     (r"/api/task/info/(.*)", tasks.TaskInfo),

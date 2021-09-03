@@ -1,10 +1,14 @@
 from __future__ import absolute_import
 
+import datetime
 import json
 import logging
+import time
 from functools import total_ordering
 from tornado import web
 from tornado import gen
+
+from .workers import ListWorkers
 from ..utils import response, tasks
 from ..utils.broker import Redis
 from .control import ControlHandler
@@ -40,8 +44,9 @@ class DashBoard(ControlHandler):
         app = self.application
         events = app.events.state
         broker = app.capp.connection().as_uri()
-        workers = {}
-
+        hostname = self.get_argument("hostname", "",type=str)
+        workers = []
+        usage = self.get_argument("usage", False, type=bool)
         for name, values in events.counter.items():
             if name not in events.workers:
                 continue
@@ -49,14 +54,25 @@ class DashBoard(ControlHandler):
             info = dict(values)
             info.update(self._as_dict(worker))
             info.update(status=worker.alive)
-            workers[name] = info
             redis_client = Redis(broker).redis
             device_info = redis_client.get(name)
+            info.update(date=time.time())
             if device_info is not None:
                 info.update(device_info=json.loads(device_info.decode()))
             else:
                 info.update(device_info=default_device_info)
-        self.write(response.ok(list(workers.values())))
+            workers.append(info)
+        if hostname != "" or hostname:
+            for worker in workers:
+                if worker.get('hostname') == hostname:
+                    self.write(response.ok(worker))
+                    return
+            self.write(response.method_error("NOT FOUND"))
+        else:
+            if usage:
+                self.write(response.ok(workers))
+            else:
+                self.write(response.ok(list(workers)))
 
     @classmethod
     def _as_dict(cls, worker):
@@ -107,7 +123,7 @@ class TaskTableData(ControlHandler):
         start = self.get_argument('start', 0, type=int)
         length = self.get_argument('length', 10, type=int)
         sort_by = 'started'
-        sort_order = 'asc' == 'desc'
+        sort_order = 'desc' == 'desc'
         search = ''
         app = self.application
 
@@ -143,3 +159,25 @@ class TaskTableData(ControlHandler):
                         setattr(task, sort_by, sort_keys[sort_by](attr_value))
                     except TypeError:
                         pass
+
+
+class WorkerAPIView(ControlHandler):
+    @web.authenticated
+    @gen.coroutine
+    def get(self, name):
+        try:
+            yield ListWorkers.update_workers(app=self.application, workername=name)
+        except Exception as e:
+            logger.error(e)
+
+        worker = ListWorkers.worker_cache.get(name)
+
+        if worker is None:
+            raise web.HTTPError(404, "Unknown worker '%s'" % name)
+        if 'stats' not in worker:
+            raise web.HTTPError(
+                404,
+                "Unable to get stats for '%s' worker" % name
+            )
+
+        self.write(response.ok(dict(worker, name=name)))
