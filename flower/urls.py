@@ -34,6 +34,7 @@ handlers = [
     (r"/api/dashboard", myapi.DashBoard),
     (r"/api/tasks/tabledata", myapi.TaskTableData),
     (r"/api/worker/(.+)", myapi.WorkerAPIView),
+    (r"/api/test", test.TestView),
     # App
     url(r"/", DashboardView, name='main'),
     url(r"/dashboard", DashboardView, name='dashboard'),

@@ -124,7 +124,7 @@ Execute a task by name and wait results
         args, kwargs, options = self.get_task_args()
         logger.debug("Invoking a task '%s' with '%s' and '%s'",
                      taskname, args, kwargs)
-
+        print(self.capp.tasks)
         try:
             task = self.capp.tasks[taskname]
         except KeyError:

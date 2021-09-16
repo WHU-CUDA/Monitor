@@ -33,6 +33,7 @@ class Flower(tornado.web.Application):
         self.ssl_options = kwargs.get('ssl_options', None)
 
         self.capp = capp or celery.Celery()
+        print(self.capp.task)
         self.events = events or Events(
             self.capp, db=self.options.db,
             persistent=self.options.persistent,
